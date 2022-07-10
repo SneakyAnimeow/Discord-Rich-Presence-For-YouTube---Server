@@ -5,7 +5,11 @@ import club.anims.discordrpcserver.interfaces.Loggable;
 import club.minnced.discord.rpc.DiscordEventHandlers;
 import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
+import com.github.kiulian.downloader.YoutubeDownloader;
+import com.github.kiulian.downloader.downloader.request.RequestVideoInfo;
 import lombok.Getter;
+
+import java.net.URL;
 
 public class DiscordRPCServer implements Loggable {
     @Getter
@@ -20,7 +24,10 @@ public class DiscordRPCServer implements Loggable {
     @Getter
     private DiscordRPC rpc;
 
+    private YoutubeDownloader downloader;
+
     private DiscordRPCServer() {
+        downloader = new YoutubeDownloader();
         initializePresence();
         initializeWebServer();
     }
@@ -35,14 +42,39 @@ public class DiscordRPCServer implements Loggable {
                 .setStartTimestamp(startTimestamp)
                 .setLargeImageKey("vanced")
                 .setDetails("Awaiting presence update...")
-                .setLargeImageText("YouTube")
-                .setJoinSecret("https://youtube.com/watch?v=dQw4w9WgXcQ");
+                .setLargeImageText("YouTube");
     }
 
     public void updatePresence(YouTubeStatus status){
+        var videoId = "";
+
+        try{
+            var url = new URL(status.getLink());
+
+            //get parameter v from url
+            var query = url.getQuery();
+            var params = query.split("&");
+            for (var param : params) {
+                var keyValue = param.split("=");
+                if (keyValue[0].equals("v")) {
+                    videoId = keyValue[1];
+                    break;
+                }
+            }
+        }catch (Exception e){
+            getLogger().info("Invalid URL: " + status.getLink());
+            return;
+        }
+
+        var infoRequest = new RequestVideoInfo(videoId);
+        var infoRequestResponse = downloader.getVideoInfo(infoRequest);
+        var videoInfo = infoRequestResponse.data();
+
+        getLogger().info("Updating presence with video: " + videoInfo.details().title());
+
         updatePresence(getDefaultDiscordRichPresenceBuilder()
-                .setDetails(status.getTitle())
-                .setState(status.getAuthor())
+                .setDetails(videoInfo.details().title())
+                .setState(videoInfo.details().author())
                 .build());
     }
 

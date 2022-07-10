@@ -33,8 +33,6 @@ public class WebServer implements Loggable {
                     get("/test", (request, response) -> {
                         getLogger().info("Request to api/presence/test");
                         var status = new YouTubeStatus(
-                                request.queryParams("author"),
-                                request.queryParams("title"),
                                 request.queryParams("link")
                         );
                         DiscordRPCServer.getInstance().updatePresence(status);
